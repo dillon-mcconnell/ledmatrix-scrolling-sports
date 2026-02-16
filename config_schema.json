@@ -230,7 +230,12 @@
     "ncaa_top25_only": {
       "type": "boolean",
       "default": false,
-      "description": "For NCAA leagues, include only games with at least one Top-25 ranked team when no explicit team/conference filter is set."
+      "description": "Enable Top-25 filtering for NCAA leagues. If no team/conference filters are set, only Top-25 games are shown."
+    },
+    "ncaa_include_top25_with_conferences": {
+      "type": "boolean",
+      "default": false,
+      "description": "When true and conference filters are set, include conference games OR any Top-25 game. Team filters still take priority."
     },
     "ncaaf_conferences": {
       "type": "array",
@@ -267,7 +272,7 @@
         ]
       },
       "default": [],
-      "description": "NCAA football conferences to include. If set, this filter is used before Top-25 filtering."
+      "description": "NCAA football conferences to include. With ncaa_top25_only=true and ncaa_include_top25_with_conferences=true, this becomes conference OR Top-25."
     },
     "ncaam_conferences": {
       "type": "array",
@@ -308,7 +313,7 @@
         ]
       },
       "default": [],
-      "description": "NCAA men's basketball conferences to include. If set, this filter is used before Top-25 filtering."
+      "description": "NCAA men's basketball conferences to include. With ncaa_top25_only=true and ncaa_include_top25_with_conferences=true, this becomes conference OR Top-25."
     },
     "ncaaf_teams": {
       "type": "array",

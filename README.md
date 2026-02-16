@@ -15,6 +15,7 @@ Vegas-style scrolling sports plugin for LEDMatrix with configurable leagues, NCA
   - Filter by conferences
   - Filter by specific team abbreviations
   - Optional Top-25-only mode
+  - Optional conference OR Top-25 combined mode
 - Shows only games for the current date (using configured timezone).
 - Per-league sequence:
   - League header/logo
@@ -70,6 +71,7 @@ cp -R /path/to/scrolling-sports /path/to/LEDMatrix/plugin-repos/scrolling-sports
     "league_ncaam_enabled": true,
     "league_ncaaf_enabled": true,
     "ncaa_top25_only": false,
+    "ncaa_include_top25_with_conferences": false,
     "ncaaf_conferences": ["SEC", "BIG TEN"],
     "ncaam_conferences": ["SEC", "ACC"],
     "ncaaf_teams": [],
@@ -80,6 +82,24 @@ cp -R /path/to/scrolling-sports /path/to/LEDMatrix/plugin-repos/scrolling-sports
 ```
 
 4. Restart LEDMatrix service.
+
+## NCAA Filter Behavior
+
+Filter precedence:
+
+1. Team filters (`ncaaf_teams` / `ncaam_teams`) always win.
+2. If team filters are empty and conference filters are set:
+   - default: conference-only matching
+   - if `ncaa_top25_only=true` and `ncaa_include_top25_with_conferences=true`:
+     - include games that match conference OR include a Top-25 team
+3. If teams/conferences are empty and `ncaa_top25_only=true`: Top-25 only.
+4. If all filters are empty: include all games for the enabled NCAA leagues.
+
+## NCAA Input Reference
+
+Use this file for exact conference values and team-entry guidance:
+
+- `NCAA_INPUT_REFERENCE.md`
 
 ## Notes
 

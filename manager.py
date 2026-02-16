@@ -5,7 +5,7 @@ Features:
 - Multi-league ticker (NFL, NBA, NHL, MLB, NCAA MBB, NCAA football)
 - Current-date-only game filtering
 - Per-league include/exclude controls
-- NCAA filters (teams, conferences, Top-25 mode)
+- NCAA filters (teams, conferences, Top-25 mode, conference+Top-25 union)
 - Team + league logos, game time/spread/scores
 - Vegas mode integration via get_vegas_content()
 """
@@ -567,19 +567,23 @@ class ScrollingSportsPlugin(BasePlugin):
         conference_key = "ncaaf_conferences" if league.ncaa_kind == "football" else "ncaam_conferences"
         selected_conference_names = {_normalize_name(name) for name in self._get_list_config(conference_key)}
         conference_ids = self._selected_conference_ids(league.ncaa_kind)
+        top25_enabled = bool(self.config.get("ncaa_top25_only", False))
+        top25_union_with_conferences = bool(
+            self.config.get("ncaa_include_top25_with_conferences", False)
+        )
+
         if conference_ids or selected_conference_names:
             id_match = (game.away_conf in conference_ids) or (game.home_conf in conference_ids)
             away_name = _normalize_name(game.away_conf_name) if game.away_conf_name else ""
             home_name = _normalize_name(game.home_conf_name) if game.home_conf_name else ""
             name_match = (away_name in selected_conference_names) or (home_name in selected_conference_names)
-            return id_match or name_match
+            conference_match = id_match or name_match
+            if top25_enabled and top25_union_with_conferences:
+                return conference_match or self._is_top25_game(game)
+            return conference_match
 
-        top25_only = bool(self.config.get("ncaa_top25_only", False))
-        if top25_only:
-            return (
-                (game.away_rank is not None and game.away_rank <= 25)
-                or (game.home_rank is not None and game.home_rank <= 25)
-            )
+        if top25_enabled:
+            return self._is_top25_game(game)
 
         return True
 
@@ -1056,10 +1060,16 @@ class ScrollingSportsPlugin(BasePlugin):
                 self._get_color("live_color", (0, 255, 120)),
             )
         return (
-            f"{game.away_score}",
+            f"{game.away_score} FINAL",
             f"{game.home_score}",
             self._get_color("final_color", (180, 180, 180)),
             self._get_color("final_color", (180, 180, 180)),
+        )
+
+    def _is_top25_game(self, game: GameEntry) -> bool:
+        return (
+            (game.away_rank is not None and game.away_rank <= 25)
+            or (game.home_rank is not None and game.home_rank <= 25)
         )
 
     def _format_time_compact(self, dt: datetime) -> str:
