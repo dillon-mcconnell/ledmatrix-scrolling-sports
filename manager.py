@@ -207,6 +207,7 @@ class ScrollingSportsPlugin(BasePlugin):
         self._ensure_cache_dirs()
 
         self._font: ImageFont.FreeTypeFont | ImageFont.ImageFont = ImageFont.load_default()
+        self._body_font: ImageFont.FreeTypeFont | ImageFont.ImageFont = ImageFont.load_default()
         self._font_signature = ""
 
         self.enable_scrolling = bool(self.config.get("enable_scrolling", True))
@@ -631,12 +632,12 @@ class ScrollingSportsPlugin(BasePlugin):
         return image
 
     def _render_game_card(self, game: GameEntry, state: str) -> Image.Image:
-        logo_size = max(10, int(self.config.get("logo_size_px", 18)))
+        # Manual override per request: team logos should be ~2/3 of panel height.
+        logo_size = max(12, min(self.display_height - 4, int(round(self.display_height * 0.66))))
         card_padding = max(0, int(self.config.get("card_padding_px", 4)))
         logo_gap = max(0, int(self.config.get("logo_gap_px", 3)))
-        line1_y = int(self.config.get("line1_y", 3))
-        line2_y = int(self.config.get("line2_y", 17))
         column_gap = max(2, logo_gap + 1)
+        body_font = self._body_font
 
         away_logo = self._load_logo(game.away_logo_url, logo_size, self.team_logo_cache)
         home_logo = self._load_logo(game.home_logo_url, logo_size, self.team_logo_cache)
@@ -647,11 +648,17 @@ class ScrollingSportsPlugin(BasePlugin):
 
         info_top, info_bottom, info_top_color, info_bottom_color = self._get_compact_info_lines(game, state)
 
-        names_width = max(self._measure_text(away_name)[0], self._measure_text(home_name)[0])
-        info_width = max(self._measure_text(info_top)[0], self._measure_text(info_bottom)[0])
+        names_width = max(
+            self._measure_text(away_name, font=body_font)[0],
+            self._measure_text(home_name, font=body_font)[0],
+        )
+        info_width = max(
+            self._measure_text(info_top, font=body_font)[0],
+            self._measure_text(info_bottom, font=body_font)[0],
+        )
 
         at_symbol = "@"
-        at_width, at_height = self._measure_text(at_symbol)
+        at_width, at_height = self._measure_text(at_symbol, font=body_font)
         logo_cluster_width = logo_size + logo_gap + at_width + logo_gap + logo_size
 
         width = (
@@ -681,21 +688,31 @@ class ScrollingSportsPlugin(BasePlugin):
             self._draw_logo_fallback(draw, home_logo_x, logo_y, logo_size, game.home_abbr)
 
         at_y = max(0, (self.display_height - at_height) // 2)
-        draw.text((at_x, at_y), at_symbol, font=self._font, fill=self._get_color("header_color", (255, 255, 255)))
+        draw.text((at_x, at_y), at_symbol, font=body_font, fill=self._get_color("header_color", (255, 255, 255)))
+
+        # Keep body text compact and vertically centered.
+        line_h = max(
+            self._measure_text("ABC", font=body_font)[1],
+            self._measure_text("123", font=body_font)[1],
+        )
+        line_gap = max(1, line_h // 4)
+        text_block_h = (line_h * 2) + line_gap
+        line1_y = max(0, (self.display_height - text_block_h) // 2)
+        line2_y = line1_y + line_h + line_gap
 
         names_x = card_padding + logo_cluster_width + column_gap
         info_x = names_x + names_width + column_gap
 
-        away_name = self._fit_text_to_width(away_name, names_width)
-        home_name = self._fit_text_to_width(home_name, names_width)
-        info_top = self._fit_text_to_width(info_top, info_width)
-        info_bottom = self._fit_text_to_width(info_bottom, info_width)
+        away_name = self._fit_text_to_width(away_name, names_width, font=body_font)
+        home_name = self._fit_text_to_width(home_name, names_width, font=body_font)
+        info_top = self._fit_text_to_width(info_top, info_width, font=body_font)
+        info_bottom = self._fit_text_to_width(info_bottom, info_width, font=body_font)
 
-        draw.text((names_x, line1_y), away_name, font=self._font, fill=team_color)
-        draw.text((names_x, line2_y), home_name, font=self._font, fill=team_color)
+        draw.text((names_x, line1_y), away_name, font=body_font, fill=team_color)
+        draw.text((names_x, line2_y), home_name, font=body_font, fill=team_color)
 
-        draw.text((info_x, line1_y), info_top, font=self._font, fill=info_top_color)
-        draw.text((info_x, line2_y), info_bottom, font=self._font, fill=info_bottom_color)
+        draw.text((info_x, line1_y), info_top, font=body_font, fill=info_top_color)
+        draw.text((info_x, line2_y), info_bottom, font=body_font, fill=info_bottom_color)
 
         return image
 
@@ -963,7 +980,7 @@ class ScrollingSportsPlugin(BasePlugin):
 
         line_match = re.search(r"([+-]?\d+(?:\.\d+)?)", spread_text)
         if not line_match:
-            return self._fit_text_to_width(upper_spread, 40)
+            return self._fit_text_to_width(upper_spread, 40, font=self._body_font)
 
         line_value = line_match.group(1)
         if not line_value.startswith(("+", "-")):
@@ -1046,7 +1063,10 @@ class ScrollingSportsPlugin(BasePlugin):
         if signature == self._font_signature:
             return
 
+        # Keep header/league text at configured size, but force game-card body text smaller.
         self._font = self._load_font(family=family, size=size, explicit_path=path)
+        body_size = max(4, size - 2)
+        self._body_font = self._load_font(family=family, size=body_size, explicit_path=path)
         self._font_signature = signature
 
     def _load_font(
@@ -1087,26 +1107,36 @@ class ScrollingSportsPlugin(BasePlugin):
             return fallback
         return ImageFont.load_default()
 
-    def _measure_text(self, text: str) -> Tuple[int, int]:
+    def _measure_text(
+        self,
+        text: str,
+        font: Optional[ImageFont.FreeTypeFont | ImageFont.ImageFont] = None,
+    ) -> Tuple[int, int]:
         probe = Image.new("RGB", (1, 1))
         draw = ImageDraw.Draw(probe)
+        use_font = font or self._font
         try:
-            bbox = draw.textbbox((0, 0), text, font=self._font)
+            bbox = draw.textbbox((0, 0), text, font=use_font)
             return max(0, bbox[2] - bbox[0]), max(0, bbox[3] - bbox[1])
         except Exception:
             return (len(text) * 6, 8)
 
-    def _fit_text_to_width(self, text: str, max_width: int) -> str:
+    def _fit_text_to_width(
+        self,
+        text: str,
+        max_width: int,
+        font: Optional[ImageFont.FreeTypeFont | ImageFont.ImageFont] = None,
+    ) -> str:
         if max_width <= 0:
             return ""
         candidate = text
-        w, _ = self._measure_text(candidate)
+        w, _ = self._measure_text(candidate, font=font)
         if w <= max_width:
             return candidate
         ellipsis = "..."
         for cut in range(len(text), 0, -1):
             candidate = text[:cut].rstrip() + ellipsis
-            w, _ = self._measure_text(candidate)
+            w, _ = self._measure_text(candidate, font=font)
             if w <= max_width:
                 return candidate
         return ellipsis
@@ -1191,7 +1221,7 @@ class ScrollingSportsPlugin(BasePlugin):
         border = self._get_color("header_color", (255, 255, 255))
         draw.rectangle([x, y, x + size - 1, y + size - 1], outline=border)
         short = team_abbr[:2].upper()
-        text_w, text_h = self._measure_text(short)
+        text_w, text_h = self._measure_text(short, font=self._body_font)
         tx = x + max(0, (size - text_w) // 2)
         ty = y + max(0, (size - text_h) // 2)
-        draw.text((tx, ty), short, font=self._font, fill=border)
+        draw.text((tx, ty), short, font=self._body_font, fill=border)
