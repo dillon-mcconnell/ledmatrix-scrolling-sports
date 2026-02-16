@@ -593,15 +593,15 @@ class ScrollingSportsPlugin(BasePlugin):
 
         show_labels = bool(self.config.get("show_section_labels", True))
 
-        if upcoming:
-            if show_labels:
-                items.append(self._render_section_label("UPCOMING"))
-            items.extend(self._render_game_card(game, "upcoming") for game in upcoming)
-
         if live:
             if show_labels:
                 items.append(self._render_section_label("LIVE"))
             items.extend(self._render_game_card(game, "live") for game in live)
+
+        if upcoming:
+            if show_labels:
+                items.append(self._render_section_label("UPCOMING"))
+            items.extend(self._render_game_card(game, "upcoming") for game in upcoming)
 
         if final:
             if show_labels:
@@ -660,8 +660,12 @@ class ScrollingSportsPlugin(BasePlugin):
         away_logo = self._load_logo(game.away_logo_url, logo_size, self.team_logo_cache)
         home_logo = self._load_logo(game.home_logo_url, logo_size, self.team_logo_cache)
 
-        away_name = self._decorate_team(game.away_abbr, game.away_rank)
-        home_name = self._decorate_team(game.home_abbr, game.home_rank)
+        if state in {"live", "final"}:
+            away_name = game.away_abbr
+            home_name = game.home_abbr
+        else:
+            away_name = self._decorate_team(game.away_abbr, game.away_rank)
+            home_name = self._decorate_team(game.home_abbr, game.home_rank)
         team_color = self._get_color("text_color", (255, 255, 255))
 
         info_top, info_bottom, info_top_color, info_bottom_color = self._get_compact_info_lines(game, state)
@@ -965,14 +969,14 @@ class ScrollingSportsPlugin(BasePlugin):
             )
         if state == "live":
             return (
-                f"H {game.home_score}",
-                f"A {game.away_score}",
+                f"{game.away_score}",
+                f"{game.home_score}",
                 self._get_color("live_color", (0, 255, 120)),
                 self._get_color("live_color", (0, 255, 120)),
             )
         return (
-            f"H {game.home_score}",
-            f"A {game.away_score}",
+            f"{game.away_score}",
+            f"{game.home_score}",
             self._get_color("final_color", (180, 180, 180)),
             self._get_color("final_color", (180, 180, 180)),
         )
