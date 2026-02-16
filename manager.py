@@ -673,36 +673,45 @@ class ScrollingSportsPlugin(BasePlugin):
         label = league.name
         text = f"{label}"
         text_w, text_h = self._measure_text(text)
-        width = (card_padding * 2) + header_logo_size + logo_gap + text_w
-
-        image = Image.new("RGB", (max(1, width), self.display_height), (0, 0, 0))
-        draw = ImageDraw.Draw(image)
 
         override_logo_source = self._get_league_logo_override(league.key)
+        logo_slot_size = header_logo_size
         if override_logo_source:
             # Scale applies only to custom uploaded/overridden league logos.
             logo_scale = _safe_float(self.config.get("league_logo_scale", 1.25), 1.25)
             logo_scale = max(0.5, min(2.5, logo_scale))
-            custom_logo_size = max(
+            logo_slot_size = max(
                 10,
                 min(self.display_height - 1, int(round(header_logo_size * logo_scale))),
             )
-            logo = self._load_logo(override_logo_source, custom_logo_size, self.league_logo_cache)
+
+        width = (card_padding * 2) + logo_slot_size + logo_gap + text_w
+
+        image = Image.new("RGB", (max(1, width), self.display_height), (0, 0, 0))
+        draw = ImageDraw.Draw(image)
+
+        if override_logo_source:
+            logo = self._load_logo(override_logo_source, logo_slot_size, self.league_logo_cache)
             if logo is None and logo_url:
                 logo = self._load_logo(logo_url, header_logo_size, self.league_logo_cache)
         else:
             logo = self._load_logo(logo_url, header_logo_size, self.league_logo_cache)
-        logo_y = (self.display_height - header_logo_size) // 2
+
+        logo_x = card_padding
         if logo:
-            image.paste(logo, (card_padding, logo_y), logo)
+            # Center loaded logo in the reserved slot in case fallback logo is smaller.
+            logo_x = card_padding + max(0, (logo_slot_size - logo.width) // 2)
+            logo_y = max(0, (self.display_height - logo.height) // 2)
+            image.paste(logo, (logo_x, logo_y), logo)
         else:
+            logo_y = max(0, (self.display_height - logo_slot_size) // 2)
             draw.rectangle(
-                [card_padding, logo_y, card_padding + header_logo_size - 1, logo_y + header_logo_size - 1],
+                [logo_x, logo_y, logo_x + logo_slot_size - 1, logo_y + logo_slot_size - 1],
                 outline=color,
             )
 
         text_y = min(max(0, (self.display_height - text_h) // 2 + 2), max(0, self.display_height - text_h))
-        draw.text((card_padding + header_logo_size + logo_gap, text_y), text, font=self._font, fill=color)
+        draw.text((card_padding + logo_slot_size + logo_gap, text_y), text, font=self._font, fill=color)
         return image
 
     def _render_section_label(self, label: str) -> Image.Image:
