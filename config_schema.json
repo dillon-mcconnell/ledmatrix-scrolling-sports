@@ -293,46 +293,254 @@
       "type": "object",
       "default": {},
       "additionalProperties": false,
-      "description": "Optional custom league logos by league key. Value can be a local file path (recommended PNG with transparency) or an https URL.",
+      "description": "Optional custom league logos by league key. Use the upload button for each league (max 1 image), or manually store a path/URL in config.",
       "properties": {
         "nfl": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom NFL league logo."
         },
         "nba": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom NBA league logo."
         },
         "nhl": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom NHL league logo."
         },
         "mlb": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom MLB league logo."
         },
         "epl": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom EPL league logo."
         },
         "laliga": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom La Liga league logo."
         },
         "bundesliga": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom Bundesliga league logo."
         },
         "seriea": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom Serie A league logo."
         },
         "ligue1": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom Ligue 1 league logo."
         },
         "mls": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom MLS league logo."
         },
         "ucl": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom Champions League logo."
         },
         "ncaam": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom NCAA MBB league logo."
         },
         "ncaaf": {
-          "type": "string"
+          "type": "array",
+          "x-widget": "file-upload",
+          "x-upload-config": {
+            "plugin_id": "scrolling-sports",
+            "max_files": 1,
+            "max_size_mb": 3,
+            "allowed_types": [
+              "image/png",
+              "image/jpeg",
+              "image/jpg",
+              "image/bmp",
+              "image/gif",
+              "image/webp"
+            ]
+          },
+          "default": [],
+          "description": "Custom NCAA Football league logo."
         }
       }
     },

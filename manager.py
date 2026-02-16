@@ -678,8 +678,11 @@ class ScrollingSportsPlugin(BasePlugin):
         draw = ImageDraw.Draw(image)
 
         override_logo_source = self._get_league_logo_override(league.key)
-        logo = self._load_logo(override_logo_source, header_logo_size, self.league_logo_cache)
-        if logo is None and override_logo_source and logo_url:
+        if override_logo_source:
+            logo = self._load_logo(override_logo_source, header_logo_size, self.league_logo_cache)
+            if logo is None and logo_url:
+                logo = self._load_logo(logo_url, header_logo_size, self.league_logo_cache)
+        else:
             logo = self._load_logo(logo_url, header_logo_size, self.league_logo_cache)
         logo_y = (self.display_height - header_logo_size) // 2
         if logo:
@@ -1367,8 +1370,25 @@ class ScrollingSportsPlugin(BasePlugin):
         if value is None:
             value = raw_overrides.get(str(league_key).lower())
 
-        if isinstance(value, str) and value.strip():
-            return value.strip()
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if cleaned:
+                return cleaned
+
+        # File-upload widget stores an array of uploaded file objects.
+        # Support that shape so league logos can be uploaded directly in Web UI.
+        if isinstance(value, list) and value:
+            first = value[0]
+            if isinstance(first, dict):
+                path_value = first.get("path")
+                if isinstance(path_value, str) and path_value.strip():
+                    return path_value.strip()
+
+        # Also tolerate single dict values with a path key.
+        if isinstance(value, dict):
+            path_value = value.get("path")
+            if isinstance(path_value, str) and path_value.strip():
+                return path_value.strip()
         return None
 
     def _resolve_local_logo_path(self, source: str) -> Optional[Path]:
