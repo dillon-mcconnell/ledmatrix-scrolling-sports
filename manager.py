@@ -632,8 +632,9 @@ class ScrollingSportsPlugin(BasePlugin):
         return image
 
     def _render_game_card(self, game: GameEntry, state: str) -> Image.Image:
-        # Manual override per request: team logos should be ~2/3 of panel height.
-        logo_size = max(12, min(self.display_height - 4, int(round(self.display_height * 0.66))))
+        # Manual override per request: render game logos very large on the panel.
+        # For a 32px-tall matrix this targets ~26px logos (about 80% height).
+        logo_size = max(18, min(self.display_height - 2, int(round(self.display_height * 0.82))))
         card_padding = max(0, int(self.config.get("card_padding_px", 4)))
         logo_gap = max(0, int(self.config.get("logo_gap_px", 3)))
         column_gap = max(2, logo_gap + 1)
@@ -1201,6 +1202,11 @@ class ScrollingSportsPlugin(BasePlugin):
     def _prepare_logo_image(self, image: Image.Image, size: int) -> Optional[Image.Image]:
         try:
             source = image.convert("RGBA")
+            # Trim transparent whitespace so logos use their full allotted size.
+            alpha = source.getchannel("A")
+            bbox = alpha.getbbox()
+            if bbox:
+                source = source.crop(bbox)
             source.thumbnail((size, size), Image.Resampling.LANCZOS)
             canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
             x = (size - source.width) // 2
