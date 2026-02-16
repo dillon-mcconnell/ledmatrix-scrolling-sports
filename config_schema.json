@@ -176,6 +176,13 @@
       "default": 16,
       "description": "League logo size in pixels."
     },
+    "league_logo_scale": {
+      "type": "number",
+      "minimum": 0.5,
+      "maximum": 2.5,
+      "default": 1.25,
+      "description": "Scale multiplier for league header logos (ESPN and custom uploads). Increase this to make league logos bigger."
+    },
     "logo_gap_px": {
       "type": "integer",
       "minimum": 0,

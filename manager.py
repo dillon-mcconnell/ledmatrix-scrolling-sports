@@ -665,8 +665,13 @@ class ScrollingSportsPlugin(BasePlugin):
 
     def _render_league_header(self, league: LeagueDefinition, logo_url: Optional[str]) -> Image.Image:
         configured_header_logo_size = int(self.config.get("header_logo_size_px", 16))
-        # Render league logos slightly larger than configured for better legibility.
-        header_logo_size = max(10, min(self.display_height - 1, configured_header_logo_size + 2))
+        # Additional scale control for league logos (works with ESPN and custom uploaded logos).
+        logo_scale = _safe_float(self.config.get("league_logo_scale", 1.25), 1.25)
+        logo_scale = max(0.5, min(2.5, logo_scale))
+        header_logo_size = max(
+            10,
+            min(self.display_height - 1, int(round(configured_header_logo_size * logo_scale))),
+        )
         card_padding = max(0, int(self.config.get("card_padding_px", 4)))
         logo_gap = max(0, int(self.config.get("logo_gap_px", 3)))
         color = self._get_color("header_color", (255, 255, 255))
