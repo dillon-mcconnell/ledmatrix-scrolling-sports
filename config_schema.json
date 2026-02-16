@@ -1,0 +1,331 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Scrolling Sports Scoreboard Configuration",
+  "description": "Configure leagues, NCAA filtering, visuals, and ticker behavior.",
+  "type": "object",
+  "properties": {
+    "timezone": {
+      "type": "string",
+      "default": "America/New_York",
+      "description": "Timezone used for date filtering and game time display."
+    },
+    "update_interval": {
+      "type": "integer",
+      "minimum": 30,
+      "maximum": 3600,
+      "default": 120,
+      "description": "Data refresh interval in seconds."
+    },
+    "enable_scrolling": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable smooth per-frame ticker movement when this plugin runs outside Vegas mode."
+    },
+    "scroll_speed_px": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 10,
+      "default": 1,
+      "description": "Horizontal scroll speed in pixels per frame."
+    },
+    "scroll_frame_delay": {
+      "type": "number",
+      "minimum": 0.004,
+      "maximum": 0.2,
+      "default": 0.02,
+      "description": "Minimum frame delay (seconds) between rendered ticker frames."
+    },
+    "max_games_per_section": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 25,
+      "default": 8,
+      "description": "Maximum number of games to show per league section (upcoming/live/final)."
+    },
+    "show_section_labels": {
+      "type": "boolean",
+      "default": true,
+      "description": "Show UPCOMING, LIVE, and FINAL labels before each section."
+    },
+    "font_family": {
+      "type": "string",
+      "enum": [
+        "press_start_2p",
+        "pixel4x6",
+        "pil_default"
+      ],
+      "default": "press_start_2p",
+      "description": "Built-in font family to use for text."
+    },
+    "font_size": {
+      "type": "integer",
+      "minimum": 5,
+      "maximum": 18,
+      "default": 8,
+      "description": "Font size for rendered text."
+    },
+    "font_path": {
+      "type": "string",
+      "default": "",
+      "description": "Optional custom font file path. If set and valid, it overrides font_family."
+    },
+    "text_color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "default": [255, 255, 255],
+      "description": "Default RGB text color."
+    },
+    "upcoming_color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "default": [255, 215, 0],
+      "description": "RGB color for upcoming game details."
+    },
+    "live_color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "default": [0, 255, 120],
+      "description": "RGB color for live game details."
+    },
+    "final_color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "default": [180, 180, 180],
+      "description": "RGB color for final game details."
+    },
+    "spread_color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "default": [120, 200, 255],
+      "description": "RGB color for betting spread text."
+    },
+    "header_color": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 255
+      },
+      "minItems": 3,
+      "maxItems": 3,
+      "default": [255, 255, 255],
+      "description": "RGB color for league and section headers."
+    },
+    "segment_spacing_px": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 64,
+      "default": 12,
+      "description": "Spacing in pixels between cards/items in the ticker."
+    },
+    "section_spacing_px": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 96,
+      "default": 20,
+      "description": "Extra spacing between UPCOMING/LIVE/FINAL sections."
+    },
+    "card_padding_px": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16,
+      "default": 4,
+      "description": "Horizontal padding inside each card."
+    },
+    "logo_size_px": {
+      "type": "integer",
+      "minimum": 8,
+      "maximum": 24,
+      "default": 14,
+      "description": "Team logo size in pixels."
+    },
+    "header_logo_size_px": {
+      "type": "integer",
+      "minimum": 10,
+      "maximum": 28,
+      "default": 16,
+      "description": "League logo size in pixels."
+    },
+    "logo_gap_px": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 16,
+      "default": 3,
+      "description": "Spacing between logos and text in cards."
+    },
+    "line1_y": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 20,
+      "default": 3,
+      "description": "Vertical pixel position for the primary text line."
+    },
+    "line2_y": {
+      "type": "integer",
+      "minimum": 6,
+      "maximum": 31,
+      "default": 17,
+      "description": "Vertical pixel position for the secondary text line."
+    },
+    "league_nfl_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include NFL games."
+    },
+    "league_nba_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include NBA games."
+    },
+    "league_nhl_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include NHL games."
+    },
+    "league_mlb_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include MLB games."
+    },
+    "league_ncaam_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include NCAA men's basketball games."
+    },
+    "league_ncaaf_enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include NCAA football games."
+    },
+    "ncaa_top25_only": {
+      "type": "boolean",
+      "default": false,
+      "description": "For NCAA leagues, include only games with at least one Top-25 ranked team when no explicit team/conference filter is set."
+    },
+    "ncaaf_conferences": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ACC",
+          "AMERICAN ATHLETIC",
+          "BIG 12",
+          "BIG TEN",
+          "C-USA",
+          "INDEPENDENTS",
+          "MAC",
+          "MOUNTAIN WEST",
+          "PAC-12",
+          "SEC",
+          "SUN BELT",
+          "FCS INDEPENDENTS",
+          "ASUN-WAC",
+          "BIG SKY",
+          "BIG SOUTH-OVC",
+          "CAA",
+          "FCS (IA) INDEPENDENTS",
+          "IVY",
+          "MEAC",
+          "MISSOURI VALLEY",
+          "NORTHEAST",
+          "PATRIOT",
+          "PIONEER",
+          "SOCON",
+          "SOUTHLAND",
+          "SWAC",
+          "UAC"
+        ]
+      },
+      "default": [],
+      "description": "NCAA football conferences to include. If set, this filter is used before Top-25 filtering."
+    },
+    "ncaam_conferences": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "ACC",
+          "AMERICA EAST",
+          "AMERICAN ATHLETIC",
+          "ATLANTIC 10",
+          "ATLANTIC SUN",
+          "BIG 12",
+          "BIG EAST",
+          "BIG SKY",
+          "BIG SOUTH",
+          "BIG TEN",
+          "BIG WEST",
+          "C-USA",
+          "CAA",
+          "HORIZON LEAGUE",
+          "IVY",
+          "MAAC",
+          "MAC",
+          "MEAC",
+          "MISSOURI VALLEY",
+          "MOUNTAIN WEST",
+          "NORTHEAST",
+          "OHIO VALLEY",
+          "PATRIOT",
+          "SEC",
+          "SOCON",
+          "SOUTHLAND",
+          "SUMMIT LEAGUE",
+          "SUN BELT",
+          "SWAC",
+          "WAC",
+          "WEST COAST"
+        ]
+      },
+      "default": [],
+      "description": "NCAA men's basketball conferences to include. If set, this filter is used before Top-25 filtering."
+    },
+    "ncaaf_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "NCAA football team abbreviations to include (for example: UGA, BAMA, OSU). If set, this filter takes priority over conference and Top-25 filters."
+    },
+    "ncaam_teams": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "NCAA men's basketball team abbreviations to include. If set, this filter takes priority over conference and Top-25 filters."
+    }
+  },
+  "additionalProperties": false
+}

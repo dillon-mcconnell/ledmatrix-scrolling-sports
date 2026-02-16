@@ -1,0 +1,38 @@
+{
+  "id": "scrolling-sports",
+  "name": "Scrolling Sports Scoreboard",
+  "version": "0.1.0",
+  "author": "Dillon",
+  "description": "Vegas-style multi-league sports ticker with configurable leagues, NCAA filters, fonts, colors, and spacing.",
+  "homepage": "https://github.com/dillon-mcconnell/ledmatrix-scrolling-sports",
+  "entry_point": "manager.py",
+  "class_name": "ScrollingSportsPlugin",
+  "category": "sports",
+  "tags": [
+    "sports",
+    "vegas-scroll",
+    "scoreboard",
+    "nfl",
+    "nba",
+    "nhl",
+    "mlb",
+    "ncaa"
+  ],
+  "icon": "fas fa-trophy",
+  "compatible_versions": [
+    ">=2.0.0"
+  ],
+  "requires": {
+    "python": ">=3.9",
+    "display_size": {
+      "min_width": 64,
+      "min_height": 32
+    }
+  },
+  "config_schema": "config_schema.json",
+  "update_interval": 120,
+  "default_duration": 20,
+  "display_modes": [
+    "scrolling_sports_vegas"
+  ]
+}
