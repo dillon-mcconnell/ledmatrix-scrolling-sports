@@ -782,16 +782,16 @@ class ScrollingSportsPlugin(BasePlugin):
         right = left + self.display_width
         frame = Image.new("RGB", (self.display_width, self.display_height), (0, 0, 0))
 
+        # IMPORTANT: Do not wrap within the same frame.
+        # When we pass the final content, show only remaining tail and blank space.
+        # The next loop begins only after scroll_offset wraps to 0.
         if right <= ticker.width:
             crop = ticker.crop((left, 0, right, self.display_height))
             frame.paste(crop, (0, 0))
             return frame
 
-        first = ticker.crop((left, 0, ticker.width, self.display_height))
-        frame.paste(first, (0, 0))
-        remainder = right - ticker.width
-        second = ticker.crop((0, 0, remainder, self.display_height))
-        frame.paste(second, (first.width, 0))
+        tail = ticker.crop((left, 0, ticker.width, self.display_height))
+        frame.paste(tail, (0, 0))
         return frame
 
     def _render_empty_message(self, force_clear: bool) -> None:
