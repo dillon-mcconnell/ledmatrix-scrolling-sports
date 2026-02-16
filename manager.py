@@ -751,7 +751,7 @@ class ScrollingSportsPlugin(BasePlugin):
         section_spacing = max(0, int(self.config.get("section_spacing_px", 20)))
         spacing = segment_spacing + section_spacing
         # Small trailing gap before loop restart (not a full-screen pause).
-        loop_gap = max(12, min(40, int(self.config.get("segment_spacing_px", 12) * 2)))
+        loop_gap = self.display_width
 
         total_width = 0
         for i, item in enumerate(items):
@@ -1321,3 +1321,4 @@ class ScrollingSportsPlugin(BasePlugin):
         tx = x + max(0, (size - text_w) // 2)
         ty = y + max(0, (size - text_h) // 2)
         draw.text((tx, ty), short, font=self._body_font, fill=border)
+
