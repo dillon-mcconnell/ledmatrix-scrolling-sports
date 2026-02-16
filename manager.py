@@ -74,6 +74,13 @@ LEAGUES: Sequence[LeagueDefinition] = (
     LeagueDefinition("nba", "NBA", "basketball", "nba", "league_nba_enabled"),
     LeagueDefinition("nhl", "NHL", "hockey", "nhl", "league_nhl_enabled"),
     LeagueDefinition("mlb", "MLB", "baseball", "mlb", "league_mlb_enabled"),
+    LeagueDefinition("epl", "EPL", "soccer", "eng.1", "league_epl_enabled"),
+    LeagueDefinition("laliga", "LA LIGA", "soccer", "esp.1", "league_laliga_enabled"),
+    LeagueDefinition("bundesliga", "BUNDESLIGA", "soccer", "ger.1", "league_bundesliga_enabled"),
+    LeagueDefinition("seriea", "SERIE A", "soccer", "ita.1", "league_seriea_enabled"),
+    LeagueDefinition("ligue1", "LIGUE 1", "soccer", "fra.1", "league_ligue1_enabled"),
+    LeagueDefinition("mls", "MLS", "soccer", "usa.1", "league_mls_enabled"),
+    LeagueDefinition("ucl", "CHAMPIONS LEAGUE", "soccer", "uefa.champions", "league_ucl_enabled"),
     LeagueDefinition(
         "ncaam",
         "NCAA MBB",
@@ -95,6 +102,8 @@ LEAGUES: Sequence[LeagueDefinition] = (
         default_group="80",
     ),
 )
+LEAGUE_BY_KEY: Dict[str, LeagueDefinition] = {league.key: league for league in LEAGUES}
+DEFAULT_LEAGUE_ORDER: List[str] = [league.key for league in LEAGUES]
 
 
 def _normalize_name(value: str) -> str:
@@ -243,7 +252,7 @@ class ScrollingSportsPlugin(BasePlugin):
         league_logo_urls: Dict[str, Optional[str]] = {}
         live_count = 0
 
-        for league in LEAGUES:
+        for league in self._get_ordered_leagues():
             if not bool(self.config.get(league.enabled_key, True)):
                 continue
 
@@ -251,8 +260,23 @@ class ScrollingSportsPlugin(BasePlugin):
             if not payload:
                 continue
 
+            league_logo_url = self._extract_league_logo_url(payload)
+            league_logo_urls[league.key] = league_logo_url
+
             events = payload.get("events", [])
-            if not isinstance(events, list) or not events:
+            if not isinstance(events, list):
+                events = []
+
+            if not events:
+                games_by_league[league.key] = {"upcoming": [], "live": [], "final": []}
+                league_items = self._build_league_items(
+                    league=league,
+                    upcoming=[],
+                    live=[],
+                    final=[],
+                    league_logo_url=league_logo_url,
+                )
+                new_items.extend(league_items)
                 continue
 
             parsed_games: List[GameEntry] = []
@@ -267,6 +291,15 @@ class ScrollingSportsPlugin(BasePlugin):
                 parsed_games.append(game)
 
             if not parsed_games:
+                games_by_league[league.key] = {"upcoming": [], "live": [], "final": []}
+                league_items = self._build_league_items(
+                    league=league,
+                    upcoming=[],
+                    live=[],
+                    final=[],
+                    league_logo_url=league_logo_url,
+                )
+                new_items.extend(league_items)
                 continue
 
             upcoming = sorted(
@@ -284,13 +317,19 @@ class ScrollingSportsPlugin(BasePlugin):
             )[:max_games]
 
             if not (upcoming or live or final):
+                games_by_league[league.key] = {"upcoming": [], "live": [], "final": []}
+                league_items = self._build_league_items(
+                    league=league,
+                    upcoming=[],
+                    live=[],
+                    final=[],
+                    league_logo_url=league_logo_url,
+                )
+                new_items.extend(league_items)
                 continue
 
             live_count += len(live)
             games_by_league[league.key] = {"upcoming": upcoming, "live": live, "final": final}
-
-            league_logo_url = self._extract_league_logo_url(payload)
-            league_logo_urls[league.key] = league_logo_url
 
             league_items = self._build_league_items(
                 league=league,
@@ -618,6 +657,9 @@ class ScrollingSportsPlugin(BasePlugin):
             if show_labels:
                 items.append(self._render_section_label("FINAL"))
             items.extend(self._render_game_card(game, "final") for game in final)
+
+        if not (live or upcoming or final):
+            items.append(self._render_section_label("NO GAMES TODAY"))
 
         return items
 
@@ -1154,6 +1196,24 @@ class ScrollingSportsPlugin(BasePlugin):
                 ids.add(conf_id)
         return ids
 
+    def _get_ordered_leagues(self) -> List[LeagueDefinition]:
+        configured_order = self._get_list_config("league_order")
+        ordered_keys: List[str] = []
+        seen: set[str] = set()
+
+        for raw in configured_order:
+            key = str(raw).strip().lower()
+            if key in LEAGUE_BY_KEY and key not in seen:
+                ordered_keys.append(key)
+                seen.add(key)
+
+        for key in DEFAULT_LEAGUE_ORDER:
+            if key not in seen:
+                ordered_keys.append(key)
+                seen.add(key)
+
+        return [LEAGUE_BY_KEY[key] for key in ordered_keys if key in LEAGUE_BY_KEY]
+
     def _normalize_team_filters(self, teams: Iterable[str]) -> List[str]:
         out: List[str] = []
         for team in teams:
@@ -1167,7 +1227,15 @@ class ScrollingSportsPlugin(BasePlugin):
         if isinstance(value, list):
             return [str(item).strip() for item in value if str(item).strip()]
         if isinstance(value, str):
-            return [part.strip() for part in value.split(",") if part.strip()]
+            text = value.strip()
+            if text.startswith("[") and text.endswith("]"):
+                try:
+                    parsed = json.loads(text)
+                    if isinstance(parsed, list):
+                        return [str(item).strip() for item in parsed if str(item).strip()]
+                except Exception:
+                    pass
+            return [part.strip() for part in text.split(",") if part.strip()]
         return []
 
     def _refresh_font(self) -> None:

@@ -217,6 +217,78 @@
       "default": true,
       "description": "Include MLB games."
     },
+    "league_epl_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include English Premier League (EPL) games."
+    },
+    "league_laliga_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include Spanish La Liga games."
+    },
+    "league_bundesliga_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include German Bundesliga games."
+    },
+    "league_seriea_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include Italian Serie A games."
+    },
+    "league_ligue1_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include French Ligue 1 games."
+    },
+    "league_mls_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include MLS games."
+    },
+    "league_ucl_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Include UEFA Champions League games."
+    },
+    "league_order": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "nfl",
+          "nba",
+          "nhl",
+          "mlb",
+          "epl",
+          "laliga",
+          "bundesliga",
+          "seriea",
+          "ligue1",
+          "mls",
+          "ucl",
+          "ncaam",
+          "ncaaf"
+        ]
+      },
+      "default": [
+        "nfl",
+        "nba",
+        "nhl",
+        "mlb",
+        "epl",
+        "laliga",
+        "bundesliga",
+        "seriea",
+        "ligue1",
+        "mls",
+        "ucl",
+        "ncaam",
+        "ncaaf"
+      ],
+      "description": "Display order for leagues in the ticker. Any omitted leagues are appended automatically in default order."
+    },
     "league_ncaam_enabled": {
       "type": "boolean",
       "default": true,

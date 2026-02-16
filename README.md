@@ -9,6 +9,13 @@ Vegas-style scrolling sports plugin for LEDMatrix with configurable leagues, NCA
   - NBA
   - NHL
   - MLB
+  - English Premier League (EPL)
+  - Spanish La Liga
+  - German Bundesliga
+  - Italian Serie A
+  - French Ligue 1
+  - MLS
+  - UEFA Champions League
   - NCAA Men's Basketball
   - NCAA Football
 - For NCAA leagues:
@@ -17,6 +24,7 @@ Vegas-style scrolling sports plugin for LEDMatrix with configurable leagues, NCA
   - Optional Top-25-only mode
   - Optional conference OR Top-25 combined mode
 - Shows only games for the current date (using configured timezone).
+- If an enabled league has no games that day, it still appears with `NO GAMES TODAY`.
 - Per-league sequence:
   - League header/logo
   - Upcoming games
@@ -68,6 +76,14 @@ cp -R /path/to/scrolling-sports /path/to/LEDMatrix/plugin-repos/scrolling-sports
     "league_nba_enabled": true,
     "league_nhl_enabled": true,
     "league_mlb_enabled": true,
+    "league_epl_enabled": false,
+    "league_laliga_enabled": false,
+    "league_bundesliga_enabled": false,
+    "league_seriea_enabled": false,
+    "league_ligue1_enabled": false,
+    "league_mls_enabled": false,
+    "league_ucl_enabled": false,
+    "league_order": ["nfl", "nba", "epl", "ncaam", "ncaaf"],
     "league_ncaam_enabled": true,
     "league_ncaaf_enabled": true,
     "ncaa_top25_only": false,
