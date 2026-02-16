@@ -181,7 +181,7 @@
       "minimum": 0.5,
       "maximum": 2.5,
       "default": 1.25,
-      "description": "Scale multiplier for league header logos (ESPN and custom uploads). Increase this to make league logos bigger."
+      "description": "Scale multiplier for custom uploaded league logos only. ESPN-provided logos continue using header_logo_size_px."
     },
     "logo_gap_px": {
       "type": "integer",

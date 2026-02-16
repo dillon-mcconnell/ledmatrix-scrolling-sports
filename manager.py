@@ -665,13 +665,7 @@ class ScrollingSportsPlugin(BasePlugin):
 
     def _render_league_header(self, league: LeagueDefinition, logo_url: Optional[str]) -> Image.Image:
         configured_header_logo_size = int(self.config.get("header_logo_size_px", 16))
-        # Additional scale control for league logos (works with ESPN and custom uploaded logos).
-        logo_scale = _safe_float(self.config.get("league_logo_scale", 1.25), 1.25)
-        logo_scale = max(0.5, min(2.5, logo_scale))
-        header_logo_size = max(
-            10,
-            min(self.display_height - 1, int(round(configured_header_logo_size * logo_scale))),
-        )
+        header_logo_size = max(10, min(self.display_height - 1, configured_header_logo_size))
         card_padding = max(0, int(self.config.get("card_padding_px", 4)))
         logo_gap = max(0, int(self.config.get("logo_gap_px", 3)))
         color = self._get_color("header_color", (255, 255, 255))
@@ -686,7 +680,14 @@ class ScrollingSportsPlugin(BasePlugin):
 
         override_logo_source = self._get_league_logo_override(league.key)
         if override_logo_source:
-            logo = self._load_logo(override_logo_source, header_logo_size, self.league_logo_cache)
+            # Scale applies only to custom uploaded/overridden league logos.
+            logo_scale = _safe_float(self.config.get("league_logo_scale", 1.25), 1.25)
+            logo_scale = max(0.5, min(2.5, logo_scale))
+            custom_logo_size = max(
+                10,
+                min(self.display_height - 1, int(round(header_logo_size * logo_scale))),
+            )
+            logo = self._load_logo(override_logo_source, custom_logo_size, self.league_logo_cache)
             if logo is None and logo_url:
                 logo = self._load_logo(logo_url, header_logo_size, self.league_logo_cache)
         else:
