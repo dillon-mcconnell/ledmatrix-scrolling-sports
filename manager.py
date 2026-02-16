@@ -314,9 +314,11 @@ class ScrollingSportsPlugin(BasePlugin):
 
         # Preserve scroll position proportionally across content refreshes.
         if self._ticker_image and prior_ticker and prior_ticker.width > 0:
-            ratio = float(prior_offset % prior_ticker.width) / float(prior_ticker.width)
-            mapped = int(ratio * self._ticker_image.width)
-            self._scroll_offset = max(0, min(self._ticker_image.width - 1, mapped))
+            prior_loop_width = self._get_loop_width(prior_ticker.width)
+            new_loop_width = self._get_loop_width(self._ticker_image.width)
+            ratio = float(prior_offset % prior_loop_width) / float(prior_loop_width)
+            mapped = int(ratio * new_loop_width)
+            self._scroll_offset = max(0, min(new_loop_width - 1, mapped))
         else:
             self._scroll_offset = 0
 
@@ -343,8 +345,8 @@ class ScrollingSportsPlugin(BasePlugin):
         self.display_manager.update_display()
 
         scroll_step = max(1, int(self.config.get("scroll_speed_px", 1)))
-        width = max(1, self._ticker_image.width)
-        self._scroll_offset = (self._scroll_offset + scroll_step) % width
+        loop_width = self._get_loop_width(self._ticker_image.width)
+        self._scroll_offset = (self._scroll_offset + scroll_step) % loop_width
 
         self._last_frame_ts = now
         return True
@@ -778,7 +780,8 @@ class ScrollingSportsPlugin(BasePlugin):
             frame.paste(ticker, (0, 0))
             return frame
 
-        left = int(self._scroll_offset) % ticker.width
+        loop_width = self._get_loop_width(ticker.width)
+        left = int(self._scroll_offset) % loop_width
         right = left + self.display_width
         frame = Image.new("RGB", (self.display_width, self.display_height), (0, 0, 0))
 
@@ -793,6 +796,17 @@ class ScrollingSportsPlugin(BasePlugin):
         tail = ticker.crop((left, 0, ticker.width, self.display_height))
         frame.paste(tail, (0, 0))
         return frame
+
+    def _get_loop_width(self, ticker_width: int) -> int:
+        """
+        Return effective loop width.
+
+        We intentionally restart one full display-width early so the ticker
+        does not show the final segment that tends to create an awkward repeat
+        at wrap boundaries.
+        """
+        early_restart = max(1, int(self.display_width))
+        return max(1, int(ticker_width) - early_restart)
 
     def _render_empty_message(self, force_clear: bool) -> None:
         if force_clear:
