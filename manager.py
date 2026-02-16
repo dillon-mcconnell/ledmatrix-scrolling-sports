@@ -639,7 +639,7 @@ class ScrollingSportsPlugin(BasePlugin):
     ) -> List[Image.Image]:
         items: List[Image.Image] = []
 
-        items.append(self._render_league_header(league.name, league_logo_url))
+        items.append(self._render_league_header(league, league_logo_url))
 
         show_labels = bool(self.config.get("show_section_labels", True))
 
@@ -663,12 +663,13 @@ class ScrollingSportsPlugin(BasePlugin):
 
         return items
 
-    def _render_league_header(self, label: str, logo_url: Optional[str]) -> Image.Image:
+    def _render_league_header(self, league: LeagueDefinition, logo_url: Optional[str]) -> Image.Image:
         header_logo_size = max(10, int(self.config.get("header_logo_size_px", 16)))
         card_padding = max(0, int(self.config.get("card_padding_px", 4)))
         logo_gap = max(0, int(self.config.get("logo_gap_px", 3)))
         color = self._get_color("header_color", (255, 255, 255))
 
+        label = league.name
         text = f"{label}"
         text_w, text_h = self._measure_text(text)
         width = (card_padding * 2) + header_logo_size + logo_gap + text_w
@@ -676,7 +677,10 @@ class ScrollingSportsPlugin(BasePlugin):
         image = Image.new("RGB", (max(1, width), self.display_height), (0, 0, 0))
         draw = ImageDraw.Draw(image)
 
-        logo = self._load_logo(logo_url, header_logo_size, self.league_logo_cache)
+        override_logo_source = self._get_league_logo_override(league.key)
+        logo = self._load_logo(override_logo_source, header_logo_size, self.league_logo_cache)
+        if logo is None and override_logo_source and logo_url:
+            logo = self._load_logo(logo_url, header_logo_size, self.league_logo_cache)
         logo_y = (self.display_height - header_logo_size) // 2
         if logo:
             image.paste(logo, (card_padding, logo_y), logo)
@@ -1354,10 +1358,59 @@ class ScrollingSportsPlugin(BasePlugin):
             except Exception:
                 pass
 
-    def _load_logo(self, url: Optional[str], size: int, cache_dir: Path) -> Optional[Image.Image]:
-        if not url:
+    def _get_league_logo_override(self, league_key: str) -> Optional[str]:
+        raw_overrides = self.config.get("league_logo_overrides", {})
+        if not isinstance(raw_overrides, dict):
             return None
-        key = hashlib.sha1(url.encode("utf-8")).hexdigest()[:16] + ".png"
+
+        value = raw_overrides.get(league_key)
+        if value is None:
+            value = raw_overrides.get(str(league_key).lower())
+
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+        return None
+
+    def _resolve_local_logo_path(self, source: str) -> Optional[Path]:
+        raw = source.strip()
+        if not raw:
+            return None
+
+        path_candidate = Path(raw).expanduser()
+        candidates: List[Path] = []
+        if path_candidate.is_absolute():
+            candidates.append(path_candidate)
+        else:
+            candidates.append(self.plugin_root / path_candidate)
+            candidates.append(Path.cwd() / path_candidate)
+
+        for candidate in candidates:
+            try:
+                if candidate.exists() and candidate.is_file():
+                    return candidate
+            except Exception:
+                continue
+        return None
+
+    def _load_logo(self, source: Optional[str], size: int, cache_dir: Path) -> Optional[Image.Image]:
+        if not source:
+            return None
+
+        source_text = str(source).strip()
+        if not source_text:
+            return None
+
+        if not source_text.lower().startswith(("http://", "https://")):
+            local_path = self._resolve_local_logo_path(source_text)
+            if local_path:
+                try:
+                    with Image.open(local_path) as image:
+                        return self._prepare_logo_image(image, size)
+                except Exception:
+                    return None
+            return None
+
+        key = hashlib.sha1(source_text.encode("utf-8")).hexdigest()[:16] + ".png"
         cache_path = cache_dir / key
 
         if cache_path.exists():
@@ -1368,7 +1421,7 @@ class ScrollingSportsPlugin(BasePlugin):
                 pass
 
         try:
-            response = self.session.get(url, timeout=10)
+            response = self.session.get(source_text, timeout=10)
             response.raise_for_status()
             with Image.open(io.BytesIO(response.content)) as image:
                 prepared = self._prepare_logo_image(image, size)

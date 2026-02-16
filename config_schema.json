@@ -289,6 +289,53 @@
       ],
       "description": "Display order for leagues in the ticker. Any omitted leagues are appended automatically in default order."
     },
+    "league_logo_overrides": {
+      "type": "object",
+      "default": {},
+      "additionalProperties": false,
+      "description": "Optional custom league logos by league key. Value can be a local file path (recommended PNG with transparency) or an https URL.",
+      "properties": {
+        "nfl": {
+          "type": "string"
+        },
+        "nba": {
+          "type": "string"
+        },
+        "nhl": {
+          "type": "string"
+        },
+        "mlb": {
+          "type": "string"
+        },
+        "epl": {
+          "type": "string"
+        },
+        "laliga": {
+          "type": "string"
+        },
+        "bundesliga": {
+          "type": "string"
+        },
+        "seriea": {
+          "type": "string"
+        },
+        "ligue1": {
+          "type": "string"
+        },
+        "mls": {
+          "type": "string"
+        },
+        "ucl": {
+          "type": "string"
+        },
+        "ncaam": {
+          "type": "string"
+        },
+        "ncaaf": {
+          "type": "string"
+        }
+      }
+    },
     "league_ncaam_enabled": {
       "type": "boolean",
       "default": true,

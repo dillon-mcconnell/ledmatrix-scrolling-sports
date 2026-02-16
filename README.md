@@ -99,6 +99,39 @@ cp -R /path/to/scrolling-sports /path/to/LEDMatrix/plugin-repos/scrolling-sports
 
 4. Restart LEDMatrix service.
 
+## Custom League Logos
+
+Use `league_logo_overrides` to replace any league logo with your own file or URL.
+
+Example:
+
+```json
+{
+  "scrolling-sports": {
+    "header_logo_size_px": 18,
+    "league_logo_overrides": {
+      "ucl": "assets/logos/ucl.png",
+      "epl": "assets/logos/epl.png",
+      "ligue1": "assets/logos/ligue1.png",
+      "ncaam": "assets/logos/ncaam.png",
+      "ncaaf": "assets/logos/ncaaf.png"
+    }
+  }
+}
+```
+
+Logo file recommendations:
+
+- Format: PNG preferred
+- Transparency: yes (recommended)
+- Aspect: square works best
+- Source size: at least 64x64 (128x128+ recommended)
+
+Notes:
+
+- Relative paths are resolved from the plugin directory first, then LEDMatrix working directory.
+- If an override fails to load, the plugin falls back to ESPN's league logo.
+
 ## NCAA Filter Behavior
 
 Filter precedence:
