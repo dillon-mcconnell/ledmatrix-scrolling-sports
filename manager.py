@@ -229,6 +229,8 @@ class ScrollingSportsPlugin(BasePlugin):
     def update(self) -> None:
         self.enable_scrolling = bool(self.config.get("enable_scrolling", True))
         self._refresh_font()
+        prior_ticker = self._ticker_image
+        prior_offset = self._scroll_offset
 
         tz = self._get_timezone()
         today = datetime.now(tz).date()
@@ -297,12 +299,25 @@ class ScrollingSportsPlugin(BasePlugin):
             )
             new_items.extend(league_items)
 
+        # Keep current ticker if refresh failed transiently to avoid visible jumps/freezes.
+        if not new_items and self._vegas_items:
+            self.logger.debug("No fresh items returned; preserving previous ticker content")
+            return
+
         self._games_by_league = games_by_league
         self._league_logo_urls = league_logo_urls
         self._live_games_count = live_count
         self._vegas_items = new_items
         self._ticker_image = self._compose_ticker_image(new_items)
-        self._scroll_offset = 0
+
+        # Preserve scroll position proportionally across content refreshes.
+        if self._ticker_image and prior_ticker and prior_ticker.width > 0:
+            ratio = float(prior_offset % prior_ticker.width) / float(prior_ticker.width)
+            mapped = int(ratio * self._ticker_image.width)
+            self._scroll_offset = max(0, min(self._ticker_image.width - 1, mapped))
+        else:
+            self._scroll_offset = 0
+
         self._cycle_complete = False
 
     def display(self, force_clear: bool = False, display_mode: Optional[str] = None) -> bool:
@@ -726,13 +741,15 @@ class ScrollingSportsPlugin(BasePlugin):
         segment_spacing = max(0, int(self.config.get("segment_spacing_px", 12)))
         section_spacing = max(0, int(self.config.get("section_spacing_px", 20)))
         spacing = segment_spacing + section_spacing
+        # Small trailing gap before loop restart (not a full-screen pause).
+        loop_gap = max(12, min(40, int(self.config.get("segment_spacing_px", 12) * 2)))
 
         total_width = 0
         for i, item in enumerate(items):
             total_width += item.width
             if i < len(items) - 1:
                 total_width += spacing
-        total_width += self.display_width
+        total_width += loop_gap
 
         ticker = Image.new("RGB", (max(self.display_width, total_width), self.display_height), (0, 0, 0))
         x = 0
