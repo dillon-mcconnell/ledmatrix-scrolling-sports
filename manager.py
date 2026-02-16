@@ -326,11 +326,8 @@ class ScrollingSportsPlugin(BasePlugin):
         self.display_manager.update_display()
 
         scroll_step = max(1, int(self.config.get("scroll_speed_px", 1)))
-        previous = self._scroll_offset
         width = max(1, self._ticker_image.width)
         self._scroll_offset = (self._scroll_offset + scroll_step) % width
-        if self._scroll_offset < previous:
-            self._cycle_complete = True
 
         self._last_frame_ts = now
         return True
@@ -363,7 +360,12 @@ class ScrollingSportsPlugin(BasePlugin):
         self._scroll_offset = 0
 
     def is_cycle_complete(self) -> bool:
-        return self._cycle_complete
+        # Keep this plugin continuously scrolling without cycle-based pauses.
+        return False
+
+    def supports_dynamic_duration(self) -> bool:
+        # Explicitly disable dynamic-duration cycle handling to keep ticker smooth.
+        return False
 
     def on_config_change(self, new_config: Dict[str, Any]) -> None:
         super().on_config_change(new_config)
@@ -616,7 +618,7 @@ class ScrollingSportsPlugin(BasePlugin):
                 outline=color,
             )
 
-        text_y = max(0, (self.display_height - text_h) // 2)
+        text_y = min(max(0, (self.display_height - text_h) // 2 + 2), max(0, self.display_height - text_h))
         draw.text((card_padding + header_logo_size + logo_gap, text_y), text, font=self._font, fill=color)
         return image
 
@@ -627,7 +629,7 @@ class ScrollingSportsPlugin(BasePlugin):
         width = max(1, text_w + (card_padding * 2))
         image = Image.new("RGB", (width, self.display_height), (0, 0, 0))
         draw = ImageDraw.Draw(image)
-        y = max(0, (self.display_height - text_h) // 2)
+        y = min(max(0, (self.display_height - text_h) // 2 + 2), max(0, self.display_height - text_h))
         draw.text((card_padding, y), label, font=self._font, fill=color)
         return image
 
@@ -946,15 +948,15 @@ class ScrollingSportsPlugin(BasePlugin):
             )
         if state == "live":
             return (
-                f"{game.away_score}-{game.home_score}",
-                self._compact_status(game.short_status),
+                f"H {game.home_score}",
+                f"A {game.away_score}",
                 self._get_color("live_color", (0, 255, 120)),
                 self._get_color("live_color", (0, 255, 120)),
             )
         return (
-            f"{game.away_score}-{game.home_score}",
-            "FINAL",
-            self._get_color("text_color", (255, 255, 255)),
+            f"H {game.home_score}",
+            f"A {game.away_score}",
+            self._get_color("final_color", (180, 180, 180)),
             self._get_color("final_color", (180, 180, 180)),
         )
 
