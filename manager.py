@@ -664,7 +664,9 @@ class ScrollingSportsPlugin(BasePlugin):
         return items
 
     def _render_league_header(self, league: LeagueDefinition, logo_url: Optional[str]) -> Image.Image:
-        header_logo_size = max(10, int(self.config.get("header_logo_size_px", 16)))
+        configured_header_logo_size = int(self.config.get("header_logo_size_px", 16))
+        # Render league logos slightly larger than configured for better legibility.
+        header_logo_size = max(10, min(self.display_height - 1, configured_header_logo_size + 2))
         card_padding = max(0, int(self.config.get("card_padding_px", 4)))
         logo_gap = max(0, int(self.config.get("logo_gap_px", 3)))
         color = self._get_color("header_color", (255, 255, 255))
@@ -728,16 +730,49 @@ class ScrollingSportsPlugin(BasePlugin):
             home_name = self._decorate_team(game.home_abbr, game.home_rank)
         team_color = self._get_color("text_color", (255, 255, 255))
 
-        info_top, info_bottom, info_top_color, info_bottom_color = self._get_compact_info_lines(game, state)
-
         names_width = max(
             self._measure_text(away_name, font=body_font)[0],
             self._measure_text(home_name, font=body_font)[0],
         )
-        info_width = max(
-            self._measure_text(info_top, font=body_font)[0],
-            self._measure_text(info_bottom, font=body_font)[0],
-        )
+
+        info_top = ""
+        info_bottom = ""
+        info_top_color: Tuple[int, int, int] = self._get_color("text_color", (255, 255, 255))
+        info_bottom_color: Tuple[int, int, int] = self._get_color("text_color", (255, 255, 255))
+        live_away_score = ""
+        live_home_score = ""
+        live_period_text = ""
+        live_clock_text = ""
+        live_score_col_width = 0
+        live_status_gap = max(2, logo_gap)
+
+        if state == "live":
+            live_away_score = str(game.away_score)
+            live_home_score = str(game.home_score)
+            live_period_text = str(game.live_period_label or "")
+            live_clock_text = str(game.live_clock or "")
+
+            score_min_width = self._measure_text("00", font=body_font)[0]
+            live_score_col_width = max(
+                score_min_width,
+                self._measure_text(live_away_score, font=body_font)[0],
+                self._measure_text(live_home_score, font=body_font)[0],
+            )
+            live_status_col_width = max(
+                self._measure_text(live_period_text, font=body_font)[0],
+                self._measure_text(live_clock_text, font=body_font)[0],
+            )
+            info_width = live_score_col_width + (
+                (live_status_gap + live_status_col_width) if live_status_col_width > 0 else 0
+            )
+            info_top_color = self._get_color("live_color", (0, 255, 120))
+            info_bottom_color = self._get_color("live_color", (0, 255, 120))
+        else:
+            info_top, info_bottom, info_top_color, info_bottom_color = self._get_compact_info_lines(game, state)
+            info_width = max(
+                self._measure_text(info_top, font=body_font)[0],
+                self._measure_text(info_bottom, font=body_font)[0],
+            )
 
         at_symbol = "@"
         at_width, at_height = self._measure_text(at_symbol, font=body_font)
@@ -787,14 +822,24 @@ class ScrollingSportsPlugin(BasePlugin):
 
         away_name = self._fit_text_to_width(away_name, names_width, font=body_font)
         home_name = self._fit_text_to_width(home_name, names_width, font=body_font)
-        info_top = self._fit_text_to_width(info_top, info_width, font=body_font)
-        info_bottom = self._fit_text_to_width(info_bottom, info_width, font=body_font)
 
         draw.text((names_x, line1_y), away_name, font=body_font, fill=team_color)
         draw.text((names_x, line2_y), home_name, font=body_font, fill=team_color)
 
-        draw.text((info_x, line1_y), info_top, font=body_font, fill=info_top_color)
-        draw.text((info_x, line2_y), info_bottom, font=body_font, fill=info_bottom_color)
+        if state == "live":
+            draw.text((info_x, line1_y), live_away_score, font=body_font, fill=info_top_color)
+            draw.text((info_x, line2_y), live_home_score, font=body_font, fill=info_bottom_color)
+
+            status_x = info_x + live_score_col_width + live_status_gap
+            if live_period_text:
+                draw.text((status_x, line1_y), live_period_text, font=body_font, fill=info_top_color)
+            if live_clock_text:
+                draw.text((status_x, line2_y), live_clock_text, font=body_font, fill=info_bottom_color)
+        else:
+            info_top = self._fit_text_to_width(info_top, info_width, font=body_font)
+            info_bottom = self._fit_text_to_width(info_bottom, info_width, font=body_font)
+            draw.text((info_x, line1_y), info_top, font=body_font, fill=info_top_color)
+            draw.text((info_x, line2_y), info_bottom, font=body_font, fill=info_bottom_color)
 
         return image
 
