@@ -56,6 +56,8 @@ class GameEntry:
     home_abbr: str
     away_score: str
     home_score: str
+    live_period_label: str
+    live_clock: str
     away_rank: Optional[int]
     home_rank: Optional[int]
     away_conf: Optional[int]
@@ -526,6 +528,7 @@ class ScrollingSportsPlugin(BasePlugin):
         home_abbr = self._team_abbreviation(home)
         away_score = str(away.get("score", "0"))
         home_score = str(home.get("score", "0"))
+        live_period_label, live_clock = self._extract_live_period_and_clock(event, status_type)
 
         return GameEntry(
             event_id=str(event.get("id", "")),
@@ -537,6 +540,8 @@ class ScrollingSportsPlugin(BasePlugin):
             home_abbr=home_abbr,
             away_score=away_score,
             home_score=home_score,
+            live_period_label=live_period_label,
+            live_clock=live_clock,
             away_rank=self._extract_rank(away),
             home_rank=self._extract_rank(home),
             away_conf=self._extract_conference_id(away),
@@ -839,6 +844,60 @@ class ScrollingSportsPlugin(BasePlugin):
         except Exception:
             return None
 
+    def _extract_live_period_and_clock(
+        self,
+        event: Dict[str, Any],
+        status_type: Dict[str, Any],
+    ) -> Tuple[str, str]:
+        status_obj = event.get("status") if isinstance(event.get("status"), dict) else {}
+
+        short_detail = str(
+            status_type.get("shortDetail")
+            or status_type.get("detail")
+            or status_type.get("description")
+            or ""
+        ).upper().strip()
+
+        period_label = ""
+        period_value = _safe_int(status_obj.get("period"))
+        if period_value is not None and period_value > 0:
+            period_label = self._ordinal_label(period_value)
+
+        # Fallback: parse explicit period token from short detail (e.g. "2ND", "3RD").
+        if not period_label:
+            period_match = re.search(r"\b(\d{1,2})(ST|ND|RD|TH)\b", short_detail)
+            if period_match:
+                period_label = f"{period_match.group(1)}{period_match.group(2)}"
+
+        # Normalize common non-numeric states for readability.
+        if not period_label:
+            if "HALFTIME" in short_detail:
+                period_label = "HALF"
+            elif "OT" in short_detail:
+                period_label = "OT"
+            elif "LIVE" in short_detail:
+                period_label = "LIVE"
+
+        clock = str(status_obj.get("displayClock") or "").strip()
+        # Fallback: parse clock from short detail when displayClock is absent.
+        if not clock:
+            clock_match = re.search(r"\b(\d{1,2}:\d{2}(?:\.\d)?)\b", short_detail)
+            if clock_match:
+                clock = clock_match.group(1)
+
+        # Avoid noisy zero clocks.
+        if clock in {"0:00", "00:00", "0:00.0", "00:00.0"}:
+            clock = ""
+
+        return period_label, clock
+
+    def _ordinal_label(self, value: int) -> str:
+        if 10 <= (value % 100) <= 20:
+            suffix = "TH"
+        else:
+            suffix = {1: "ST", 2: "ND", 3: "RD"}.get(value % 10, "TH")
+        return f"{value}{suffix}"
+
     def _extract_spread(self, event: Dict[str, Any], competition: Dict[str, Any]) -> str:
         sources: List[Any] = []
         sources.append(competition.get("odds"))
@@ -968,9 +1027,17 @@ class ScrollingSportsPlugin(BasePlugin):
                 self._get_color("spread_color", (120, 200, 255)),
             )
         if state == "live":
+            top = f"{game.away_score}"
+            if game.live_period_label:
+                top = f"{top} {game.live_period_label}"
+
+            bottom = f"{game.home_score}"
+            if game.live_clock:
+                bottom = f"{bottom} {game.live_clock}"
+
             return (
-                f"{game.away_score}",
-                f"{game.home_score}",
+                top,
+                bottom,
                 self._get_color("live_color", (0, 255, 120)),
                 self._get_color("live_color", (0, 255, 120)),
             )
