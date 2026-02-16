@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import re
 import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -630,67 +631,71 @@ class ScrollingSportsPlugin(BasePlugin):
         return image
 
     def _render_game_card(self, game: GameEntry, state: str) -> Image.Image:
-        logo_size = max(8, int(self.config.get("logo_size_px", 14)))
+        logo_size = max(10, int(self.config.get("logo_size_px", 18)))
         card_padding = max(0, int(self.config.get("card_padding_px", 4)))
         logo_gap = max(0, int(self.config.get("logo_gap_px", 3)))
         line1_y = int(self.config.get("line1_y", 3))
         line2_y = int(self.config.get("line2_y", 17))
+        column_gap = max(2, logo_gap + 1)
 
         away_logo = self._load_logo(game.away_logo_url, logo_size, self.team_logo_cache)
         home_logo = self._load_logo(game.home_logo_url, logo_size, self.team_logo_cache)
 
         away_name = self._decorate_team(game.away_abbr, game.away_rank)
         home_name = self._decorate_team(game.home_abbr, game.home_rank)
+        team_color = self._get_color("text_color", (255, 255, 255))
 
-        if state == "upcoming":
-            line1 = f"{away_name} @ {home_name}"
-            line2 = self._format_upcoming_line(game)
-            line1_color = self._get_color("text_color", (255, 255, 255))
-            line2_color = self._get_color("upcoming_color", (255, 215, 0))
-        elif state == "live":
-            line1 = f"{away_name} {game.away_score} - {game.home_score} {home_name}"
-            line2 = game.short_status.upper()
-            line1_color = self._get_color("text_color", (255, 255, 255))
-            line2_color = self._get_color("live_color", (0, 255, 120))
-        else:
-            line1 = f"{away_name} {game.away_score} - {game.home_score} {home_name}"
-            line2 = "FINAL"
-            line1_color = self._get_color("text_color", (255, 255, 255))
-            line2_color = self._get_color("final_color", (180, 180, 180))
+        info_top, info_bottom, info_top_color, info_bottom_color = self._get_compact_info_lines(game, state)
 
-        line1_w, _ = self._measure_text(line1)
-        line2_w, _ = self._measure_text(line2)
+        names_width = max(self._measure_text(away_name)[0], self._measure_text(home_name)[0])
+        info_width = max(self._measure_text(info_top)[0], self._measure_text(info_bottom)[0])
 
-        center_w = max(line1_w, line2_w)
-        width = (card_padding * 2) + (logo_size * 2) + (logo_gap * 2) + center_w
+        at_symbol = "@"
+        at_width, at_height = self._measure_text(at_symbol)
+        logo_cluster_width = logo_size + logo_gap + at_width + logo_gap + logo_size
+
+        width = (
+            (card_padding * 2)
+            + logo_cluster_width
+            + column_gap
+            + names_width
+            + column_gap
+            + info_width
+        )
         image = Image.new("RGB", (max(1, width), self.display_height), (0, 0, 0))
         draw = ImageDraw.Draw(image)
 
         logo_y = (self.display_height - logo_size) // 2
-        left_logo_x = card_padding
-        right_logo_x = width - card_padding - logo_size
+        away_logo_x = card_padding
+        at_x = away_logo_x + logo_size + logo_gap
+        home_logo_x = at_x + at_width + logo_gap
 
         if away_logo:
-            image.paste(away_logo, (left_logo_x, logo_y), away_logo)
+            image.paste(away_logo, (away_logo_x, logo_y), away_logo)
         else:
-            self._draw_logo_fallback(draw, left_logo_x, logo_y, logo_size, game.away_abbr)
+            self._draw_logo_fallback(draw, away_logo_x, logo_y, logo_size, game.away_abbr)
 
         if home_logo:
-            image.paste(home_logo, (right_logo_x, logo_y), home_logo)
+            image.paste(home_logo, (home_logo_x, logo_y), home_logo)
         else:
-            self._draw_logo_fallback(draw, right_logo_x, logo_y, logo_size, game.home_abbr)
+            self._draw_logo_fallback(draw, home_logo_x, logo_y, logo_size, game.home_abbr)
 
-        center_x = left_logo_x + logo_size + logo_gap
-        max_center_width = max(1, right_logo_x - logo_gap - center_x)
-        line1_clipped = self._fit_text_to_width(line1, max_center_width)
-        line2_clipped = self._fit_text_to_width(line2, max_center_width)
+        at_y = max(0, (self.display_height - at_height) // 2)
+        draw.text((at_x, at_y), at_symbol, font=self._font, fill=self._get_color("header_color", (255, 255, 255)))
 
-        draw.text((center_x, line1_y), line1_clipped, font=self._font, fill=line1_color)
-        draw.text((center_x, line2_y), line2_clipped, font=self._font, fill=line2_color)
+        names_x = card_padding + logo_cluster_width + column_gap
+        info_x = names_x + names_width + column_gap
 
-        if state == "upcoming" and "SPREAD" in line2_clipped.upper():
-            spread_color = self._get_color("spread_color", (120, 200, 255))
-            draw.text((center_x, line2_y), line2_clipped, font=self._font, fill=spread_color)
+        away_name = self._fit_text_to_width(away_name, names_width)
+        home_name = self._fit_text_to_width(home_name, names_width)
+        info_top = self._fit_text_to_width(info_top, info_width)
+        info_bottom = self._fit_text_to_width(info_bottom, info_width)
+
+        draw.text((names_x, line1_y), away_name, font=self._font, fill=team_color)
+        draw.text((names_x, line2_y), home_name, font=self._font, fill=team_color)
+
+        draw.text((info_x, line1_y), info_top, font=self._font, fill=info_top_color)
+        draw.text((info_x, line2_y), info_bottom, font=self._font, fill=info_bottom_color)
 
         return image
 
@@ -908,6 +913,101 @@ class ScrollingSportsPlugin(BasePlugin):
         time_text = f"{hour}:{minute}{ampm}"
         spread = game.spread_text
         return f"{time_text} {spread}"
+
+    def _get_compact_info_lines(
+        self,
+        game: GameEntry,
+        state: str,
+    ) -> Tuple[str, str, Tuple[int, int, int], Tuple[int, int, int]]:
+        if state == "upcoming":
+            return (
+                self._format_time_compact(game.start_local),
+                self._format_spread_compact(game),
+                self._get_color("upcoming_color", (255, 215, 0)),
+                self._get_color("spread_color", (120, 200, 255)),
+            )
+        if state == "live":
+            return (
+                f"{game.away_score}-{game.home_score}",
+                self._compact_status(game.short_status),
+                self._get_color("live_color", (0, 255, 120)),
+                self._get_color("live_color", (0, 255, 120)),
+            )
+        return (
+            f"{game.away_score}-{game.home_score}",
+            "FINAL",
+            self._get_color("text_color", (255, 255, 255)),
+            self._get_color("final_color", (180, 180, 180)),
+        )
+
+    def _format_time_compact(self, dt: datetime) -> str:
+        hour = dt.strftime("%I").lstrip("0") or "12"
+        minute = dt.strftime("%M")
+        ampm = dt.strftime("%p")
+        return f"{hour}:{minute}{ampm[:1]}"
+
+    def _format_spread_compact(self, game: GameEntry) -> str:
+        spread_text = str(game.spread_text or "").strip()
+        if not spread_text:
+            return "N/A"
+
+        # Normalize strings like "Spread MIA -1.5" -> "MIA -1.5".
+        if spread_text.lower().startswith("spread"):
+            spread_text = spread_text[6:].strip()
+
+        upper_spread = spread_text.upper()
+        if not spread_text or upper_spread in {"N/A", "NONE"}:
+            return "N/A"
+        if "PICK" in upper_spread or upper_spread == "PK":
+            return "PK"
+
+        line_match = re.search(r"([+-]?\d+(?:\.\d+)?)", spread_text)
+        if not line_match:
+            return self._fit_text_to_width(upper_spread, 40)
+
+        line_value = line_match.group(1)
+        if not line_value.startswith(("+", "-")):
+            line_value = f"+{line_value}"
+
+        favored_text = spread_text[: line_match.start()].strip()
+        favored_abbr = self._spread_favored_abbr(favored_text, game)
+        if favored_abbr:
+            return f"{favored_abbr} {line_value}"
+        return line_value
+
+    def _spread_favored_abbr(self, favored_text: str, game: GameEntry) -> str:
+        if not favored_text:
+            return ""
+
+        normalized = re.sub(r"[^A-Za-z0-9 ]", " ", favored_text).upper()
+        normalized = " ".join(normalized.split())
+        if not normalized:
+            return ""
+
+        away = game.away_abbr.upper()
+        home = game.home_abbr.upper()
+        if away and away in normalized:
+            return away
+        if home and home in normalized:
+            return home
+
+        tokens = [
+            token for token in normalized.split()
+            if token and token not in {"THE", "OF", "UNIVERSITY", "STATE"}
+        ]
+        if not tokens:
+            return ""
+
+        if len(tokens) == 1:
+            return tokens[0][:3]
+        return "".join(token[0] for token in tokens[:3])[:3]
+
+    def _compact_status(self, status: str) -> str:
+        text = str(status or "").upper().strip()
+        if not text:
+            return "LIVE"
+        text = text.replace("FINAL", "FNL")
+        return text
 
     def _selected_conference_ids(self, kind: str) -> set[int]:
         key = "ncaaf_conferences" if kind == "football" else "ncaam_conferences"

@@ -54,14 +54,14 @@
         "pixel4x6",
         "pil_default"
       ],
-      "default": "press_start_2p",
+      "default": "pixel4x6",
       "description": "Built-in font family to use for text."
     },
     "font_size": {
       "type": "integer",
       "minimum": 5,
       "maximum": 18,
-      "default": 8,
+      "default": 6,
       "description": "Font size for rendered text."
     },
     "font_path": {
@@ -165,8 +165,8 @@
     "logo_size_px": {
       "type": "integer",
       "minimum": 8,
-      "maximum": 24,
-      "default": 14,
+      "maximum": 28,
+      "default": 18,
       "description": "Team logo size in pixels."
     },
     "header_logo_size_px": {
