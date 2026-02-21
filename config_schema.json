@@ -47,6 +47,11 @@
       "default": true,
       "description": "Show UPCOMING, LIVE, and FINAL labels before each section."
     },
+    "show_no_games_today": {
+      "type": "boolean",
+      "default": true,
+      "description": "When true, enabled leagues with no same-day games render NO GAMES TODAY. When false, empty leagues are skipped."
+    },
     "font_family": {
       "type": "string",
       "enum": [

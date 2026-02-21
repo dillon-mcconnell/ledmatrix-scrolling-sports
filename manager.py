@@ -104,6 +104,13 @@ LEAGUES: Sequence[LeagueDefinition] = (
 )
 LEAGUE_BY_KEY: Dict[str, LeagueDefinition] = {league.key: league for league in LEAGUES}
 DEFAULT_LEAGUE_ORDER: List[str] = [league.key for league in LEAGUES]
+REGULATION_PERIODS_BY_LEAGUE: Dict[str, int] = {
+    "nfl": 4,
+    "ncaaf": 4,
+    "nba": 4,
+    "ncaam": 2,
+    "nhl": 3,
+}
 
 
 def _normalize_name(value: str) -> str:
@@ -246,6 +253,7 @@ class ScrollingSportsPlugin(BasePlugin):
         tz = self._get_timezone()
         today = datetime.now(tz).date()
         max_games = max(1, int(self.config.get("max_games_per_section", 8)))
+        show_no_games_today = self._get_bool_config("show_no_games_today", True)
 
         new_items: List[Image.Image] = []
         games_by_league: Dict[str, Dict[str, List[GameEntry]]] = {}
@@ -269,14 +277,15 @@ class ScrollingSportsPlugin(BasePlugin):
 
             if not events:
                 games_by_league[league.key] = {"upcoming": [], "live": [], "final": []}
-                league_items = self._build_league_items(
-                    league=league,
-                    upcoming=[],
-                    live=[],
-                    final=[],
-                    league_logo_url=league_logo_url,
-                )
-                new_items.extend(league_items)
+                if show_no_games_today:
+                    league_items = self._build_league_items(
+                        league=league,
+                        upcoming=[],
+                        live=[],
+                        final=[],
+                        league_logo_url=league_logo_url,
+                    )
+                    new_items.extend(league_items)
                 continue
 
             parsed_games: List[GameEntry] = []
@@ -292,14 +301,15 @@ class ScrollingSportsPlugin(BasePlugin):
 
             if not parsed_games:
                 games_by_league[league.key] = {"upcoming": [], "live": [], "final": []}
-                league_items = self._build_league_items(
-                    league=league,
-                    upcoming=[],
-                    live=[],
-                    final=[],
-                    league_logo_url=league_logo_url,
-                )
-                new_items.extend(league_items)
+                if show_no_games_today:
+                    league_items = self._build_league_items(
+                        league=league,
+                        upcoming=[],
+                        live=[],
+                        final=[],
+                        league_logo_url=league_logo_url,
+                    )
+                    new_items.extend(league_items)
                 continue
 
             upcoming = sorted(
@@ -318,14 +328,15 @@ class ScrollingSportsPlugin(BasePlugin):
 
             if not (upcoming or live or final):
                 games_by_league[league.key] = {"upcoming": [], "live": [], "final": []}
-                league_items = self._build_league_items(
-                    league=league,
-                    upcoming=[],
-                    live=[],
-                    final=[],
-                    league_logo_url=league_logo_url,
-                )
-                new_items.extend(league_items)
+                if show_no_games_today:
+                    league_items = self._build_league_items(
+                        league=league,
+                        upcoming=[],
+                        live=[],
+                        final=[],
+                        league_logo_url=league_logo_url,
+                    )
+                    new_items.extend(league_items)
                 continue
 
             live_count += len(live)
@@ -569,7 +580,7 @@ class ScrollingSportsPlugin(BasePlugin):
         home_abbr = self._team_abbreviation(home)
         away_score = str(away.get("score", "0"))
         home_score = str(home.get("score", "0"))
-        live_period_label, live_clock = self._extract_live_period_and_clock(event, status_type)
+        live_period_label, live_clock = self._extract_live_period_and_clock(event, status_type, league)
 
         return GameEntry(
             event_id=str(event.get("id", "")),
@@ -658,7 +669,7 @@ class ScrollingSportsPlugin(BasePlugin):
                 items.append(self._render_section_label("FINAL"))
             items.extend(self._render_game_card(game, "final") for game in final)
 
-        if not (live or upcoming or final):
+        if not (live or upcoming or final) and self._get_bool_config("show_no_games_today", True):
             items.append(self._render_section_label("NO GAMES TODAY"))
 
         return items
@@ -975,6 +986,7 @@ class ScrollingSportsPlugin(BasePlugin):
         self,
         event: Dict[str, Any],
         status_type: Dict[str, Any],
+        league: LeagueDefinition,
     ) -> Tuple[str, str]:
         status_obj = event.get("status") if isinstance(event.get("status"), dict) else {}
 
@@ -987,8 +999,17 @@ class ScrollingSportsPlugin(BasePlugin):
 
         period_label = ""
         period_value = _safe_int(status_obj.get("period"))
+        regulation_periods = REGULATION_PERIODS_BY_LEAGUE.get(league.key)
+        has_overtime_token = bool(re.search(r"\b(OT|AET|ET)\b", short_detail))
+
         if period_value is not None and period_value > 0:
-            period_label = self._ordinal_label(period_value)
+            if regulation_periods is not None and period_value > regulation_periods:
+                ot_number = max(1, period_value - regulation_periods)
+                period_label = "OT" if ot_number == 1 else f"{ot_number}OT"
+            elif has_overtime_token and regulation_periods is not None:
+                period_label = "OT"
+            else:
+                period_label = self._ordinal_label(period_value)
 
         # Fallback: parse explicit period token from short detail (e.g. "2ND", "3RD").
         if not period_label:
@@ -1000,7 +1021,7 @@ class ScrollingSportsPlugin(BasePlugin):
         if not period_label:
             if "HALFTIME" in short_detail:
                 period_label = "HALF"
-            elif "OT" in short_detail:
+            elif has_overtime_token and regulation_periods is not None:
                 period_label = "OT"
             elif "LIVE" in short_detail:
                 period_label = "LIVE"
@@ -1304,6 +1325,16 @@ class ScrollingSportsPlugin(BasePlugin):
                     pass
             return [part.strip() for part in text.split(",") if part.strip()]
         return []
+
+    def _get_bool_config(self, key: str, default: bool) -> bool:
+        value = self.config.get(key, default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, (int, float)):
+            return value != 0
+        if isinstance(value, str):
+            return value.strip().lower() in {"1", "true", "yes", "on"}
+        return bool(value)
 
     def _refresh_font(self) -> None:
         family = str(self.config.get("font_family", "press_start_2p"))
