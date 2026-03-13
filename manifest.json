@@ -1,7 +1,7 @@
 {
   "id": "scrolling-sports",
   "name": "Scrolling Sports Scoreboard",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Dillon",
   "description": "Vegas-style multi-league sports ticker with configurable leagues, NCAA filters, fonts, colors, and spacing.",
   "homepage": "https://github.com/dillon-mcconnell/ledmatrix-scrolling-sports",
